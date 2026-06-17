@@ -41,35 +41,31 @@ export const VRTutorial: React.FC = () => {
     ? Math.sin((frame - PHASES.HIGHLIGHT_GRAB.start) * 0.25) * 12
     : 0;
 
-  // Spread during scale phases
-  const scaleSpread = clamp(
-    interpolate(
-      frame,
-      [
-        PHASES.SCALE_TOGETHER.start, PHASES.SCALE_TOGETHER.end,
-        PHASES.SCALE_APART.start, PHASES.SCALE_APART.end,
-      ],
-      [baseSpread, baseSpread - 120, baseSpread - 120, baseSpread + 80],
-      { easing: Easing.inOut(Easing.cubic) }
-    )
-  );
+  // Spread during scale phases — split into two separate interpolations to avoid duplicate keyframes
+  const spreadTogether = frame < PHASES.SCALE_TOGETHER.end
+    ? interpolate(frame, [PHASES.SCALE_TOGETHER.start, PHASES.SCALE_TOGETHER.end], [baseSpread, baseSpread - 120], { easing: Easing.inOut(Easing.cubic), extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : baseSpread - 120;
+
+  const spreadApart = frame >= PHASES.SCALE_APART.start
+    ? interpolate(frame, [PHASES.SCALE_APART.start, PHASES.SCALE_APART.end], [baseSpread - 120, baseSpread + 80], { easing: Easing.inOut(Easing.cubic), extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : baseSpread - 120;
+
+  const scaleSpread = frame < PHASES.SCALE_APART.start ? spreadTogether : spreadApart;
 
   const spread = frame < PHASES.SCALE_TOGETHER.start
     ? baseSpread + highlightPulse
     : scaleSpread;
 
-  // --- Scale indicator (object between controllers) ---
-  const objectScale = clamp(
-    interpolate(
-      frame,
-      [
-        PHASES.SCALE_TOGETHER.start, PHASES.SCALE_TOGETHER.end,
-        PHASES.SCALE_APART.start, PHASES.SCALE_APART.end,
-      ],
-      [1, 0.4, 0.4, 1.5],
-      { easing: Easing.inOut(Easing.cubic) }
-    )
-  );
+  // --- Scale indicator split the same way ---
+  const objectScaleTogether = frame < PHASES.SCALE_TOGETHER.end
+    ? interpolate(frame, [PHASES.SCALE_TOGETHER.start, PHASES.SCALE_TOGETHER.end], [1, 0.4], { easing: Easing.inOut(Easing.cubic), extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 0.4;
+
+  const objectScaleApart = frame >= PHASES.SCALE_APART.start
+    ? interpolate(frame, [PHASES.SCALE_APART.start, PHASES.SCALE_APART.end], [0.4, 1.5], { easing: Easing.inOut(Easing.cubic), extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 0.4;
+
+  const objectScale = frame < PHASES.SCALE_APART.start ? objectScaleTogether : objectScaleApart;
 
   // --- Arrow animation for scale together/apart ---
   const showArrows = frame >= PHASES.SCALE_TOGETHER.start;
